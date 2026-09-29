@@ -1,0 +1,20 @@
+{
+	"name": "getting_meta_data_bronze",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "walmartpstorageaccount_link",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "bronze"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

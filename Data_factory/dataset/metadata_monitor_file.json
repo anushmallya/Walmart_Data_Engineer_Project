@@ -1,0 +1,27 @@
+{
+	"name": "metadata_monitor_file",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "walmartpstorageaccount_link",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "monitor_source",
+				"fileSystem": "bronze"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"last_update": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

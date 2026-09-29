@@ -1,0 +1,13 @@
+{
+	"name": "max_date_sql_database_lookup",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase_Link",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

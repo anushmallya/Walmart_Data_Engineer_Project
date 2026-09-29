@@ -1,0 +1,45 @@
+{
+	"name": "update_date_to_last_update_lookup",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "walmartpstorageaccount_link",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_folder_1": {
+				"type": "string"
+			},
+			"p_folder_2": {
+				"type": "string"
+			},
+			"p_file": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().p_file",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@concat(dataset().p_folder_1,'/',dataset().p_folder_2)",
+					"type": "Expression"
+				},
+				"fileSystem": "bronze"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"last_update": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

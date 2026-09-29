@@ -1,0 +1,49 @@
+{
+	"name": "Walmart_data_to_bronze_pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "File to data base",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "prem_csv_to_sql_database_pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "SQL to adls bronze",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "File to data base",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SQL_Database_to_adls_pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-09-29T06:15:53Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

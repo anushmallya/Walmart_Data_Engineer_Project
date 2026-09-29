@@ -1,0 +1,15 @@
+{
+	"name": "Walmart-Project-DataFactory",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "d96d3aa1-fcee-493f-a0b5-f2190054d074",
+		"tenantId": "279df1a3-726d-4fd0-9fa8-5e38a6f8ea97"
+	}
+}

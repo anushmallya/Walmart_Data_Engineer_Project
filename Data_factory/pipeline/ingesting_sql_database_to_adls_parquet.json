@@ -1,0 +1,339 @@
+{
+	"name": "ingesting_sql_database_to_adls_parquet",
+	"properties": {
+		"activities": [
+			{
+				"name": "Last_date_lookup",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "last_date_json_lookup",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder_1": {
+								"value": "@pipeline().parameters.p_table",
+								"type": "Expression"
+							},
+							"p_folder_2": {
+								"value": "@{pipeline().parameters.p_table}_monitor",
+								"type": "Expression"
+							},
+							"p_file": {
+								"value": "@{pipeline().parameters.p_table}_last_update.json",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "updated_date_lookup",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT \n    MAX(updated_timestamp) as latest_update\nFROM @{pipeline().parameters.p_schema}.@{pipeline().parameters.p_table}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "max_date_sql_database_lookup",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Current_date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_date",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Copy_sql_data_to_adls",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Last_date_lookup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "updated_date_lookup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Current_date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT\n    *\nFROM @{pipeline().parameters.p_schema}.@{pipeline().parameters.p_table}\nWHERE updated_timestamp > '@{activity('Last_date_lookup').output.value[0].last_update}' AND updated_timestamp <= '@{activity('updated_date_lookup').output.value[0].latest_update}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SQL_Database_lookup",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "sql_to_adls_parquet_sink",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder_1": {
+								"value": "@pipeline().parameters.p_table",
+								"type": "Expression"
+							},
+							"p_folder_2": {
+								"value": "@{pipeline().parameters.p_table}_data",
+								"type": "Expression"
+							},
+							"p_file": {
+								"value": "@concat(pipeline().parameters.p_table,'-',variables('v_date'))",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "If Condition1",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Copy_sql_data_to_adls",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('Copy_sql_data_to_adls').output.dataRead,0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Delete1",
+							"type": "Delete",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "sql_to_adls_parquet_sink",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_folder_1": "@pipeline().parameters.p_table",
+										"p_folder_2": "@{pipeline().parameters.p_table}_data",
+										"p_file": "@concat(pipeline().parameters.p_table,'-',variables('v_date'))"
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Copy_updated_date_to_last_date",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"additionalColumns": [
+										{
+											"name": "last_update",
+											"value": {
+												"value": "@activity('updated_date_lookup').output.value[0].latest_update",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "update_date_to_last_update_lookup",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_folder_1": {
+											"value": "@pipeline().parameters.p_table",
+											"type": "Expression"
+										},
+										"p_folder_2": {
+											"value": "@{pipeline().parameters.p_table}_monitor",
+											"type": "Expression"
+										},
+										"p_file": {
+											"value": "@{pipeline().parameters.p_table}_empty.json",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "last_date_json_lookup",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_folder_1": {
+											"value": "@pipeline().parameters.p_table",
+											"type": "Expression"
+										},
+										"p_folder_2": {
+											"value": "@{pipeline().parameters.p_table}_monitor",
+											"type": "Expression"
+										},
+										"p_file": {
+											"value": "@{pipeline().parameters.p_table}_last_update.json",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_table": {
+				"type": "string"
+			},
+			"p_schema": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_date": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-28T19:10:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

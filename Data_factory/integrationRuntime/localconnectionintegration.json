@@ -1,0 +1,6 @@
+{
+	"name": "localconnectionintegration",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}
