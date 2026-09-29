@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "Walmart-Project-DataFactory"
+		},
+		"AzureSqlDatabase_Link_password": {
+			"value": ""
+		},
+		"FileServer1_password": {
+			"value": ""
+		},
+		"walmartpstorageaccount_link_accountKey": {
+			"value": ""
+		},
+		"AzureSqlDatabase_Link_properties_typeProperties_server": {
+			"value": "walmart-project-server.database.windows.net"
+		},
+		"AzureSqlDatabase_Link_properties_typeProperties_database": {
+			"value": "walmart_db"
+		},
+		"AzureSqlDatabase_Link_properties_typeProperties_userName": {
+			"value": "wpadmin"
+		},
+		"FileServer1_properties_typeProperties_host": {
+			"value": "D:\\Projects\\Walmart_Project\\dataset"
+		},
+		"FileServer1_properties_typeProperties_userId": {
+			"value": "anushmallya@gmail.com"
+		},
+		"walmartpstorageaccount_link_properties_typeProperties_url": {
+			"value": "https://walmartpstorageaccount.dfs.core.windows.net/"
+		}
+	}
+}
