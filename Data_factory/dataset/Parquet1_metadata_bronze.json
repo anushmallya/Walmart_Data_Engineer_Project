@@ -1,0 +1,19 @@
+{
+	"name": "Parquet1_metadata_bronze",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "walmartpstorageaccount_link",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "bronze"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}
