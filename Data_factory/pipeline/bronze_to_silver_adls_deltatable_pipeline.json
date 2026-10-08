@@ -1,9 +1,9 @@
 {
-	"name": "pipeline1",
+	"name": "bronze_to_silver_adls_deltatable_pipeline",
 	"properties": {
 		"activities": [
 			{
-				"name": "Get Metadata1",
+				"name": "Get_Metadata_bronze_silver_tabel",
 				"type": "GetMetadata",
 				"dependsOn": [],
 				"policy": {
@@ -24,6 +24,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -36,7 +37,7 @@
 				"type": "ForEach",
 				"dependsOn": [
 					{
-						"activity": "Get Metadata1",
+						"activity": "Get_Metadata_bronze_silver_tabel",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -45,7 +46,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('Get Metadata1').output.childItems",
+						"value": "@activity('Get_Metadata_bronze_silver_tabel').output.childItems",
 						"type": "Expression"
 					},
 					"isSequential": true,
@@ -62,7 +63,7 @@
 								},
 								"ifTrueActivities": [
 									{
-										"name": "Notebook1",
+										"name": "Silver_notebook",
 										"type": "DatabricksNotebook",
 										"dependsOn": [],
 										"policy": {
@@ -95,6 +96,33 @@
 							}
 						}
 					]
+				}
+			},
+			{
+				"name": "silver_obt_notebook",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "ForEach1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/WB-Project/silver_obt"
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks_link",
+					"type": "LinkedServiceReference"
 				}
 			}
 		],

@@ -1,5 +1,5 @@
 {
-	"name": "Walmart_data_to_bronze_pipeline",
+	"name": "Walmart_data_project_pipeline",
 	"properties": {
 		"activities": [
 			{
@@ -36,6 +36,29 @@
 				"typeProperties": {
 					"pipeline": {
 						"referenceName": "SQL_Database_to_adls_pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "bronze_to_silver_adls_deltatable",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SQL to adls bronze",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "bronze_to_silver_adls_deltatable_pipeline",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
