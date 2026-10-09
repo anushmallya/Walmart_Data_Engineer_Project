@@ -63,6 +63,29 @@
 					},
 					"waitOnCompletion": true
 				}
+			},
+			{
+				"name": "silver_gold_star_schema",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "bronze_to_silver_adls_deltatable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "silver_to_gold_schema_pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
 			}
 		],
 		"annotations": [],
