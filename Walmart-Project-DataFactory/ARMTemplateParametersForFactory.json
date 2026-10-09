@@ -5,6 +5,9 @@
 		"factoryName": {
 			"value": "Walmart-Project-DataFactory"
 		},
+		"AzureDatabricks_link_accessToken": {
+			"value": ""
+		},
 		"AzureSqlDatabase_Link_password": {
 			"value": ""
 		},
@@ -13,6 +16,9 @@
 		},
 		"walmartpstorageaccount_link_accountKey": {
 			"value": ""
+		},
+		"AzureDatabricks_link_properties_typeProperties_existingClusterId": {
+			"value": "1003-103711-3139ih7f"
 		},
 		"AzureSqlDatabase_Link_properties_typeProperties_server": {
 			"value": "walmart-project-server.database.windows.net"

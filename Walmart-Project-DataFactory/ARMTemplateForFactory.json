@@ -7,6 +7,10 @@
 			"metadata": "Data Factory name",
 			"defaultValue": "Walmart-Project-DataFactory"
 		},
+		"AzureDatabricks_link_accessToken": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accessToken' of 'AzureDatabricks_link'"
+		},
 		"AzureSqlDatabase_Link_password": {
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'AzureSqlDatabase_Link'"
@@ -18,6 +22,10 @@
 		"walmartpstorageaccount_link_accountKey": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'walmartpstorageaccount_link'"
+		},
+		"AzureDatabricks_link_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "1003-103711-3139ih7f"
 		},
 		"AzureSqlDatabase_Link_properties_typeProperties_server": {
 			"type": "string",
@@ -257,7 +265,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/Walmart_data_to_bronze_pipeline')]",
+			"name": "[concat(parameters('factoryName'), '/Walmart_data_project_pipeline')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -302,6 +310,54 @@
 							"waitOnCompletion": true,
 							"parameters": {}
 						}
+					},
+					{
+						"name": "bronze_to_silver_adls_deltatable",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "SQL to adls bronze",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "bronze_to_silver_adls_deltatable_pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "silver_gold_star_schema",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "bronze_to_silver_adls_deltatable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "silver_to_gold_schema_pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
 					}
 				],
 				"policy": {
@@ -312,7 +368,158 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/prem_csv_to_sql_database_pipeline')]",
-				"[concat(variables('factoryId'), '/pipelines/SQL_Database_to_adls_pipeline')]"
+				"[concat(variables('factoryId'), '/pipelines/SQL_Database_to_adls_pipeline')]",
+				"[concat(variables('factoryId'), '/pipelines/bronze_to_silver_adls_deltatable_pipeline')]",
+				"[concat(variables('factoryId'), '/pipelines/silver_to_gold_schema_pipeline')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/bronze_to_silver_adls_deltatable_pipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get_Metadata_bronze_silver_tabel",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "Parquet1_metadata_bronze",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "ParquetReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get_Metadata_bronze_silver_tabel",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get_Metadata_bronze_silver_tabel').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "If Condition1",
+									"type": "IfCondition",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@not(equals(item().name,'monitor_source'))",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "Silver_notebook",
+												"type": "DatabricksNotebook",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"notebookPath": "/WB-Project/Silver",
+													"baseParameters": {
+														"data_title": {
+															"value": "@item().name",
+															"type": "Expression"
+														},
+														"file_store": {
+															"value": "@concat(item().name,'_data')",
+															"type": "Expression"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "AzureDatabricks_link",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "silver_obt_notebook",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "ForEach1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/WB-Project/silver_obt"
+						},
+						"linkedServiceName": {
+							"referenceName": "AzureDatabricks_link",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"v_check": {
+						"type": "Array"
+					},
+					"V_checkl": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Parquet1_metadata_bronze')]",
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricks_link')]"
 			]
 		},
 		{
@@ -1316,6 +1523,102 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/Parquet1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "walmartpstorageaccount_link",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_f": {
+						"type": "string"
+					},
+					"p_f1": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_f1",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().p_f",
+							"type": "Expression"
+						}
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/walmartpstorageaccount_link')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Parquet1_metadata2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "walmartpstorageaccount_link",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "bronze"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/walmartpstorageaccount_link')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Parquet1_metadata_bronze')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "walmartpstorageaccount_link",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileSystem": "bronze"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/walmartpstorageaccount_link')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/SQL_Database_lookup')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -1714,6 +2017,24 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/AzureDatabricks_link')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-7405613354029650.10.azuredatabricks.net",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDatabricks_link_accessToken')]"
+					},
+					"existingClusterId": "[parameters('AzureDatabricks_link_properties_typeProperties_existingClusterId')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase_Link')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
 			"apiVersion": "2018-06-01",
@@ -1785,6 +2106,42 @@
 				"typeProperties": {}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/silver_to_gold_schema_pipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Star_schema_model",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/WB-Project/Gold_final"
+						},
+						"linkedServiceName": {
+							"referenceName": "AzureDatabricks_link",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDatabricks_link')]"
+			]
 		}
 	]
 }
