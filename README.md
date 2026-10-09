@@ -236,6 +236,3 @@ These are potential future improvements, not claims about existing project funct
 ## 🔗 Connect with Me
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue)](https://www.linkedin.com/in/anush-mallya-k/)
-
-[![GitHub](https://img.shields.io/badge/GitHub-Profile-black)](https://github.com/anushmallya)
-
