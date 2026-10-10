@@ -22,7 +22,7 @@ The project follows the **Medallion Architecture**, separating ingestion, transf
 
 ## 🏗️ Architecture
 
-!(Data Architecture/Untitled-2026-08-15-1601.png)
+![Architecture Diagram](Data Architecture/Untitled-2026-08-15-1601.png)
 
 Azure Data Factory orchestrates the ingestion and Databricks processing workflows.
 
