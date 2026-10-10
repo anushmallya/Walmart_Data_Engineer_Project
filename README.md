@@ -22,47 +22,7 @@ The project follows the **Medallion Architecture**, separating ingestion, transf
 
 ## 🏗️ Architecture
 
-```text
-Walmart Retail CSV Files
-          |
-          v
-Self-Hosted Integration Runtime
-          |
-          v
-Azure Data Factory
-          |
-          v
-Azure SQL Database
-(Initial Data Load and Staging)
-          |
-          v
-ADF Incremental Ingestion
-(Using updated_timestamp)
-          |
-          v
-ADLS Gen2 - Bronze
-(Parquet)
-          |
-          v
-Azure Databricks
-(Bronze-to-Silver Processing)
-          |
-          v
-ADLS Gen2 - Silver
-(Delta Lake Tables)
-          |
-          v
-Order-Based One Big Table
-(OBT)
-          |
-          v
-Gold Transformation
-(Fact and Dimension Tables)
-          |
-          v
-ADLS Gen2 - Gold
-(Delta Lake Tables)
-```
+![Architecture Diagram](Data Architecture/Untitled-2026-08-15-1601.png)
 
 Azure Data Factory orchestrates the ingestion and Databricks processing workflows.
 
