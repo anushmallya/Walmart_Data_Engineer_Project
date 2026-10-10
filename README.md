@@ -21,8 +21,8 @@ The Gold layer implements custom **Slowly Changing Dimension Type 2 (SCD Type 2)
 The project follows the **Medallion Architecture**, separating ingestion, transformation, and analytical modelling into Bronze, Silver, and Gold layers.
 
 ## 🏗️ Architecture
+<img width="8664" height="2978" alt="Untitled-2026-08-15-1601" src="https://github.com/user-attachments/assets/eb788a67-e07a-4d2a-914c-e54f8fee35d5" />
 
-![Architecture Diagram](Data Architecture/Untitled-2026-08-15-1601.png)
 
 Azure Data Factory orchestrates the ingestion and Databricks processing workflows.
 
